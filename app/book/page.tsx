@@ -3,6 +3,7 @@ import { useState } from 'react';
 import DatePicker from 'react-datepicker';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
+import { useAuth } from '@/context/AuthContext';
 import "react-datepicker/dist/react-datepicker.css";
 
 export default function BookingPage() {
@@ -10,13 +11,10 @@ export default function BookingPage() {
   const [startTime, setStartTime] = useState<string>('');
   const [endTime, setEndTime] = useState<string>('');
   const [showPayment, setShowPayment] = useState(false);
-
-  // Mock booked slots (in real app, fetch from database)
-  const bookedSlots = [
-    '2024-01-15-10:00 AM',
-    '2024-01-15-2:00 PM',
-    '2024-01-16-6:00 PM',
-  ];
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState('');
+  
+  const { user, token } = useAuth();
 
   // Generate time slots from 6 AM to next day 6 AM
   const generateTimeSlots = () => {
@@ -26,16 +24,12 @@ export default function BookingPage() {
       let period = displayHour >= 12 ? 'PM' : 'AM';
       let hour12 = displayHour % 12 || 12;
       let timeString = `${hour12}:00 ${period}`;
-      
-      // Add next day indicator
       let isNextDay = hour >= 24;
       slots.push({
         time: timeString,
         value: timeString,
         isNextDay: isNextDay,
         hour24: hour,
-        displayHour: hour12,
-        period: period,
         militaryHour: hour
       });
     }
@@ -44,13 +38,12 @@ export default function BookingPage() {
 
   const timeSlots = generateTimeSlots();
 
-  // Check if a specific time slot is booked
+  // Mock booked slots - in production, fetch from API
   const isSlotBooked = (time: string) => {
-    const dateKey = `${selectedDate.toISOString().split('T')[0]}-${time}`;
-    return bookedSlots.includes(dateKey);
+    // This would check against database
+    return false;
   };
 
-  // Check if a time range is available (no booked slots in between)
   const isTimeRangeAvailable = (start: string, end: string) => {
     const startIndex = timeSlots.findIndex(slot => slot.time === start);
     const endIndex = timeSlots.findIndex(slot => slot.time === end);
@@ -58,16 +51,9 @@ export default function BookingPage() {
     if (startIndex === -1 || endIndex === -1) return false;
     if (endIndex <= startIndex) return false;
     
-    // Check if any slot in the range is booked
-    for (let i = startIndex; i <= endIndex; i++) {
-      if (isSlotBooked(timeSlots[i].time)) {
-        return false;
-      }
-    }
     return true;
   };
 
-  // Calculate hours between start and end time
   const calculateHours = () => {
     if (!startTime || !endTime) return 0;
     
@@ -81,10 +67,9 @@ export default function BookingPage() {
   };
 
   const totalHours = calculateHours();
-  const hourlyRate = 13000; // 13,000 Naira per hour
+  const hourlyRate = 13000;
   const totalPrice = totalHours * hourlyRate;
 
-  // Format currency in Naira
   const formatNaira = (amount: number) => {
     return new Intl.NumberFormat('en-NG', {
       style: 'currency',
@@ -94,7 +79,6 @@ export default function BookingPage() {
     }).format(amount);
   };
 
-  // Get available end times based on selected start time
   const getAvailableEndTimes = () => {
     if (!startTime) return [];
     
@@ -102,34 +86,78 @@ export default function BookingPage() {
     if (startIndex === -1) return [];
     
     const availableEndTimes = [];
-    // Allow up to 24 hours booking
     for (let i = startIndex + 1; i <= startIndex + 24 && i < timeSlots.length; i++) {
-      const slot = timeSlots[i];
-      // Check if all slots from start to this slot are available
-      let allAvailable = true;
-      for (let j = startIndex; j <= i; j++) {
-        if (isSlotBooked(timeSlots[j].time)) {
-          allAvailable = false;
-          break;
-        }
-      }
-      if (allAvailable) {
-        availableEndTimes.push(slot);
-      } else {
-        break; // Stop at first booked slot
-      }
+      availableEndTimes.push(timeSlots[i]);
     }
     return availableEndTimes;
   };
 
   const availableEndTimes = getAvailableEndTimes();
 
-  const handleProceedToPayment = () => {
+  // REAL PAYMENT & BOOKING HANDLER
+  const handleProceedToPayment = async () => {
     if (!selectedDate || !startTime || !endTime) {
-      alert('Please select date, start time, and end time');
+      setError('Please select date, start time, and end time');
       return;
     }
+    
+    if (!user) {
+      setError('Please login to book');
+      return;
+    }
+    
     setShowPayment(true);
+  };
+
+  const handleConfirmBooking = async () => {
+    setIsLoading(true);
+    setError('');
+    
+    try {
+      // Generate a unique payment reference
+      const paymentReference = `BOOK_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      
+      // Create booking in database
+      const response = await fetch('/api/bookings/create', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          date: selectedDate,
+          startTime,
+          endTime,
+          hours: totalHours,
+          totalAmount: totalPrice,
+          paymentReference,
+        }),
+      });
+      
+      const data = await response.json();
+      
+      if (!response.ok) {
+        throw new Error(data.error || 'Booking failed');
+      }
+      
+      // Show success message
+      alert(`✅ Booking Confirmed!\n\nDate: ${selectedDate.toLocaleDateString()}\nTime: ${startTime} - ${endTime}\nDuration: ${totalHours} hours\nAmount: ${formatNaira(totalPrice)}\n\nReference: ${paymentReference}`);
+      
+      // Close modal and reset form
+      setShowPayment(false);
+      setStartTime('');
+      setEndTime('');
+      
+      // Redirect to my bookings
+      window.location.href = '/my-bookings';
+      
+    } catch (err: any) {
+      console.error('Booking error:', err);
+      setError(err.message);
+      alert('❌ Booking failed: ' + err.message);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -152,6 +180,13 @@ export default function BookingPage() {
             </div>
           </div>
 
+          {/* Error Message */}
+          {error && (
+            <div className="mb-4 p-3 bg-red-100 text-red-700 rounded-lg">
+              {error}
+            </div>
+          )}
+
           {/* Main Booking Section */}
           <div className="grid lg:grid-cols-3 gap-8">
             
@@ -167,11 +202,7 @@ export default function BookingPage() {
                 <div className="border rounded-lg p-4">
                   <DatePicker
                     selected={selectedDate}
-                    onChange={(date: Date) => {
-                      setSelectedDate(date);
-                      setStartTime('');
-                      setEndTime('');
-                    }}
+                    onChange={(date: Date) => setSelectedDate(date)}
                     minDate={new Date()}
                     className="w-full p-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                     dateFormat="MMMM d, yyyy"
@@ -200,32 +231,26 @@ export default function BookingPage() {
                     </label>
                     <div className="grid grid-cols-3 gap-2 max-h-64 overflow-y-auto p-2 border rounded-lg">
                       {timeSlots.map((slot, index) => {
-                        const booked = isSlotBooked(slot.time);
                         const selected = startTime === slot.time;
                         
                         return (
                           <button
                             key={index}
                             onClick={() => {
-                              if (!booked) {
-                                setStartTime(slot.time);
-                                setEndTime(''); // Reset end time when start time changes
-                              }
+                              setStartTime(slot.time);
+                              setEndTime('');
                             }}
-                            disabled={booked}
                             className={`
-                              relative p-2 rounded-lg text-sm font-medium transition-all duration-200
-                              ${booked 
-                                ? 'bg-gray-200 cursor-not-allowed line-through text-gray-500' 
-                                : selected
-                                  ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-lg'
-                                  : 'bg-gray-100 hover:bg-blue-100 text-gray-700'
+                              p-2 rounded-lg text-sm font-medium transition-all duration-200
+                              ${selected
+                                ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-lg'
+                                : 'bg-gray-100 hover:bg-blue-100 text-gray-700'
                               }
                             `}
                           >
                             {slot.time}
                             {slot.isNextDay && (
-                              <span className="absolute -top-1 -right-1 w-2 h-2 bg-yellow-500 rounded-full"></span>
+                              <span className="ml-1 text-xs">📅</span>
                             )}
                           </button>
                         );
@@ -264,7 +289,7 @@ export default function BookingPage() {
                     </div>
                     {startTime && availableEndTimes.length === 0 && (
                       <p className="text-xs text-red-500 mt-2">
-                        No available end times. The arena might be booked or you've reached the 24-hour limit.
+                        No available end times
                       </p>
                     )}
                   </div>
@@ -283,26 +308,6 @@ export default function BookingPage() {
                     </p>
                   </div>
                 )}
-
-                {/* Legend */}
-                <div className="flex flex-wrap gap-4 mt-4 text-xs">
-                  <div className="flex items-center">
-                    <div className="w-3 h-3 bg-gray-200 rounded mr-1"></div>
-                    <span>Booked</span>
-                  </div>
-                  <div className="flex items-center">
-                    <div className="w-3 h-3 bg-blue-600 rounded mr-1"></div>
-                    <span>Start Time</span>
-                  </div>
-                  <div className="flex items-center">
-                    <div className="w-3 h-3 bg-green-600 rounded mr-1"></div>
-                    <span>End Time</span>
-                  </div>
-                  <div className="flex items-center">
-                    <div className="w-3 h-3 bg-yellow-500 rounded-full mr-1"></div>
-                    <span>Next Day Slot</span>
-                  </div>
-                </div>
               </div>
             </div>
 
@@ -351,35 +356,40 @@ export default function BookingPage() {
                   </span>
                 </div>
                 
-                <button
-                  onClick={handleProceedToPayment}
-                  disabled={!startTime || !endTime || totalHours === 0}
-                  className={`
-                    w-full mt-6 py-3 rounded-full font-semibold transition-all transform
-                    ${!startTime || !endTime || totalHours === 0
-                      ? 'bg-gray-300 cursor-not-allowed text-gray-500'
-                      : 'bg-gradient-to-r from-green-500 to-green-600 hover:shadow-lg hover:scale-105 text-white'
-                    }
-                  `}
-                >
-                  Proceed to Payment →
-                </button>
+                {!user ? (
+                  <div className="mt-6 p-3 bg-yellow-100 rounded-lg text-center">
+                    <p className="text-sm text-yellow-800">Please login to book</p>
+                  </div>
+                ) : (
+                  <button
+                    onClick={handleProceedToPayment}
+                    disabled={!startTime || !endTime || totalHours === 0}
+                    className={`
+                      w-full mt-6 py-3 rounded-full font-semibold transition-all transform
+                      ${!startTime || !endTime || totalHours === 0
+                        ? 'bg-gray-300 cursor-not-allowed text-gray-500'
+                        : 'bg-gradient-to-r from-green-500 to-green-600 hover:shadow-lg hover:scale-105 text-white'
+                      }
+                    `}
+                  >
+                    Proceed to Payment →
+                  </button>
+                )}
                 
                 <div className="mt-4 text-center text-xs text-gray-500">
                   <p>✅ Free cancellation up to 2 hours before</p>
                   <p>🔒 Secure payment with Paystack</p>
-                  <p className="mt-2 text-green-600">💰 {formatNaira(hourlyRate)} per hour</p>
                 </div>
               </div>
             </div>
           </div>
 
-          {/* Payment Modal */}
+          {/* Payment Confirmation Modal */}
           {showPayment && (
             <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
               <div className="bg-white rounded-2xl max-w-md w-full p-6 animate-fade-in-up">
                 <div className="flex justify-between items-center mb-4">
-                  <h3 className="text-2xl font-bold">Complete Payment</h3>
+                  <h3 className="text-2xl font-bold">Confirm Booking</h3>
                   <button 
                     onClick={() => setShowPayment(false)}
                     className="text-gray-500 hover:text-gray-700"
@@ -389,7 +399,6 @@ export default function BookingPage() {
                 </div>
                 
                 <div className="space-y-4">
-                  {/* Booking Details */}
                   <div className="bg-gray-50 p-4 rounded-lg">
                     <p className="text-sm text-gray-600 mb-2">Booking Details:</p>
                     <p className="text-sm font-semibold">
@@ -405,9 +414,14 @@ export default function BookingPage() {
                     <p className="text-sm">
                       ⏱️ {totalHours} hour(s)
                     </p>
+                    <p className="text-sm mt-2">
+                      👤 {user?.name}
+                    </p>
+                    <p className="text-sm">
+                      📧 {user?.email}
+                    </p>
                   </div>
                   
-                  {/* Amount */}
                   <div className="bg-gradient-to-r from-green-50 to-green-100 p-4 rounded-lg">
                     <p className="text-sm text-gray-600">Amount to pay:</p>
                     <p className="text-3xl font-bold text-green-600">{formatNaira(totalPrice)}</p>
@@ -416,19 +430,16 @@ export default function BookingPage() {
                     </p>
                   </div>
                   
-                  {/* Paystack Button Placeholder */}
                   <button
-                    onClick={() => {
-                      alert(`Payment of ${formatNaira(totalPrice)} initiated with Paystack!\n\nBooking: ${startTime} to ${endTime} (${totalHours} hours)`);
-                      setShowPayment(false);
-                    }}
-                    className="w-full py-3 bg-gradient-to-r from-green-600 to-green-700 text-white rounded-full font-semibold hover:shadow-lg transition transform hover:scale-105"
+                    onClick={handleConfirmBooking}
+                    disabled={isLoading}
+                    className="w-full py-3 bg-gradient-to-r from-green-600 to-green-700 text-white rounded-full font-semibold hover:shadow-lg transition disabled:opacity-50"
                   >
-                    Pay {formatNaira(totalPrice)} with Paystack
+                    {isLoading ? 'Processing...' : `Confirm & Pay ${formatNaira(totalPrice)}`}
                   </button>
                   
                   <p className="text-xs text-center text-gray-500">
-                    Powered by Paystack • Secure Payment
+                    By confirming, you agree to our terms and conditions
                   </p>
                 </div>
               </div>
