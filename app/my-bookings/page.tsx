@@ -10,7 +10,6 @@ export default function MyBookings() {
   const [error, setError] = useState('');
   const { token, user } = useAuth();
 
-  // Format currency in Naira
   const formatNaira = (amount: number) => {
     return new Intl.NumberFormat('en-NG', {
       style: 'currency',
@@ -20,7 +19,6 @@ export default function MyBookings() {
     }).format(amount);
   };
 
-  // Fetch real bookings from API
   useEffect(() => {
     if (token) {
       fetchBookings();
@@ -44,7 +42,7 @@ export default function MyBookings() {
         throw new Error(data.error || 'Failed to fetch bookings');
       }
       
-      setBookings(data.bookings);
+      setBookings(data.bookings || []);
     } catch (err: any) {
       console.error('Error fetching bookings:', err);
       setError(err.message);
@@ -93,7 +91,6 @@ export default function MyBookings() {
       <div className="pt-20 pb-12">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           
-          {/* Page Header */}
           <div className="mb-8">
             <h1 className="text-4xl md:text-5xl font-bold text-gray-800 mb-2">
               My Bookings
@@ -109,7 +106,6 @@ export default function MyBookings() {
             </div>
           )}
 
-          {/* Bookings List */}
           {bookings.length === 0 ? (
             <div className="text-center py-12 bg-white rounded-2xl shadow-md">
               <div className="text-6xl mb-4">📅</div>
@@ -155,8 +151,8 @@ export default function MyBookings() {
                           <span className="ml-2 font-semibold text-green-600">{formatNaira(booking.totalAmount)}</span>
                         </div>
                         <div>
-                          <span className="text-gray-500">📧 Booking ID:</span>
-                          <span className="ml-2 font-mono text-xs">{booking.paymentReference || booking._id}</span>
+                          <span className="text-gray-500">📧 Reference:</span>
+                          <span className="ml-2 font-mono text-xs">{booking.paymentReference?.substring(0, 20)}...</span>
                         </div>
                         <div>
                           <span className="text-gray-500">📅 Booked on:</span>

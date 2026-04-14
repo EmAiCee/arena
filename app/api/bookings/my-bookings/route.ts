@@ -14,13 +14,20 @@ export async function GET(request: NextRequest) {
     
     const decoded = jwt.verify(token, process.env.JWT_SECRET!) as any;
     
-    const bookings = await Booking.find({ userId: decoded.userId }).sort({ createdAt: -1 });
+    // Fetch bookings for this user, sorted by newest first
+    const bookings = await Booking.find({ userId: decoded.userId })
+      .sort({ createdAt: -1 });
     
-    return NextResponse.json({ bookings });
-  } catch (error) {
+    console.log(`Found ${bookings.length} bookings for user ${decoded.userId}`);
+    
+    return NextResponse.json({ 
+      success: true, 
+      bookings: bookings 
+    });
+  } catch (error: any) {
     console.error('Fetch bookings error:', error);
     return NextResponse.json(
-      { error: 'Internal server error' },
+      { error: error.message || 'Internal server error' },
       { status: 500 }
     );
   }
