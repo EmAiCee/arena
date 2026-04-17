@@ -1,5 +1,6 @@
 'use client';
 import { useState } from 'react';
+import Link from 'next/link';
 
 export default function HowItWorks() {
   const [activeStep, setActiveStep] = useState(0);
@@ -17,7 +18,7 @@ export default function HowItWorks() {
       title: "Select Duration",
       description: "Choose how many hours you want to book. Minimum 1 hour, maximum 24 hours.",
       icon: "⏱️",
-      details: "Flexible hourly booking with special rates for longer sessions"
+      details: "Flexible hourly booking at ₦13,000 per hour"
     },
     {
       number: "03",
@@ -29,8 +30,8 @@ export default function HowItWorks() {
     {
       number: "04",
       title: "Confirm & Play",
-      description: "Get instant confirmation via email and SMS. Show up and enjoy your game!",
-      icon: "🎮",
+      description: "Get instant confirmation via email. Show up and enjoy your game!",
+      icon: "⚽",
       details: "Free cancellation up to 2 hours before booking"
     }
   ];
@@ -91,11 +92,14 @@ export default function HowItWorks() {
           ))}
         </div>
 
-        {/* CTA */}
+        {/* CTA with Link */}
         <div className="text-center">
-          <button className="px-8 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-full font-semibold hover:shadow-2xl transition transform hover:scale-105">
+          <Link
+            href="/book"
+            className="inline-block px-8 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-full font-semibold hover:shadow-2xl transition transform hover:scale-105"
+          >
             Start Booking Now →
-          </button>
+          </Link>
         </div>
       </div>
     </section>

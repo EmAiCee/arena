@@ -52,7 +52,7 @@ export default function Features() {
           </div>
           <h2 className="text-4xl md:text-5xl font-bold text-gray-800 mb-4">
             Premium Features for
-            <span className="bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent"> Sports Lovers</span>
+            <span className="bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent"> Football Lovers</span>
           </h2>
           <p className="text-gray-600 max-w-2xl mx-auto text-lg">
             Experience the best booking platform with amazing features designed for you

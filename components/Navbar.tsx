@@ -4,6 +4,9 @@ import Link from 'next/link';
 import { useAuth } from '@/context/AuthContext';
 import AuthModal from './AuthModal';
 
+// Admin emails list (same as in admin routes)
+const ADMIN_EMAILS = ['algonimusa202@gmail.com'];
+
 export default function Navbar() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
@@ -18,6 +21,9 @@ export default function Navbar() {
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
+
+  // Check if current user is admin
+  const isAdmin = user && ADMIN_EMAILS.includes(user.email);
 
   return (
     <>
@@ -51,6 +57,11 @@ export default function Navbar() {
                   My Bookings
                 </Link>
               )}
+              {isAdmin && (
+                <Link href="/admin" className="text-gray-700 hover:text-red-600 transition font-medium">
+                  Admin
+                </Link>
+              )}
               <Link href="/about" className="text-gray-700 hover:text-blue-600 transition font-medium">
                 About
               </Link>
@@ -68,6 +79,11 @@ export default function Navbar() {
                             {user.name.charAt(0).toUpperCase()}
                           </div>
                           <span className="text-gray-700">{user.name}</span>
+                          {isAdmin && (
+                            <span className="text-xs bg-red-100 text-red-600 px-1.5 py-0.5 rounded-full ml-1">
+                              Admin
+                            </span>
+                          )}
                         </button>
                       </div>
                       <button
@@ -122,6 +138,11 @@ export default function Navbar() {
                   My Bookings
                 </Link>
               )}
+              {isAdmin && (
+                <Link href="/admin" className="block py-2 text-gray-700 hover:text-red-600 font-medium">
+                  Admin Dashboard
+                </Link>
+              )}
               <Link href="/about" className="block py-2 text-gray-700 hover:text-blue-600 font-medium">
                 About
               </Link>
@@ -133,6 +154,11 @@ export default function Navbar() {
                         {user.name.charAt(0).toUpperCase()}
                       </div>
                       <span className="text-gray-700">{user.name}</span>
+                      {isAdmin && (
+                        <span className="text-xs bg-red-100 text-red-600 px-1.5 py-0.5 rounded-full">
+                          Admin
+                        </span>
+                      )}
                     </div>
                     <button
                       onClick={logout}
