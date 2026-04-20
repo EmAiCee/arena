@@ -1,5 +1,6 @@
 'use client';
 import { useState, useEffect } from 'react';
+import Link from 'next/link';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import { useAuth } from '@/context/AuthContext';
@@ -8,6 +9,7 @@ export default function MyBookings() {
   const [bookings, setBookings] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [autoCompleting, setAutoCompleting] = useState(false);
   const { token, user } = useAuth();
 
   const formatNaira = (amount: number) => {
@@ -18,14 +20,6 @@ export default function MyBookings() {
       maximumFractionDigits: 0,
     }).format(amount);
   };
-
-  useEffect(() => {
-    if (token) {
-      fetchBookings();
-    } else {
-      setLoading(false);
-    }
-  }, [token]);
 
   const fetchBookings = async () => {
     try {
@@ -50,6 +44,57 @@ export default function MyBookings() {
       setLoading(false);
     }
   };
+
+  // Auto-complete past bookings
+  useEffect(() => {
+    const autoCompletePastBookings = async () => {
+      if (autoCompleting) return;
+      setAutoCompleting(true);
+      
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      let hasUpdates = false;
+      
+      for (const booking of bookings) {
+        const bookingDate = new Date(booking.date);
+        bookingDate.setHours(0, 0, 0, 0);
+        
+        if (bookingDate < today && booking.status === 'confirmed') {
+          try {
+            await fetch('/api/bookings/complete', {
+              method: 'PUT',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`,
+              },
+              body: JSON.stringify({ bookingId: booking._id }),
+            });
+            hasUpdates = true;
+          } catch (err) {
+            console.error('Error completing booking:', err);
+          }
+        }
+      }
+      
+      // Refresh bookings if any were updated
+      if (hasUpdates) {
+        await fetchBookings();
+      }
+      setAutoCompleting(false);
+    };
+    
+    if (bookings.length > 0 && token && !autoCompleting) {
+      autoCompletePastBookings();
+    }
+  }, [bookings, token]);
+
+  useEffect(() => {
+    if (token) {
+      fetchBookings();
+    } else {
+      setLoading(false);
+    }
+  }, [token]);
 
   const getStatusColor = (status: string) => {
     switch(status) {
@@ -76,7 +121,7 @@ export default function MyBookings() {
       <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
         <Navbar />
         <div className="pt-32 text-center">
-          <div className="spinner mx-auto"></div>
+          <div className="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto"></div>
           <p className="mt-4 text-gray-600">Loading your bookings...</p>
         </div>
         <Footer />
@@ -96,7 +141,7 @@ export default function MyBookings() {
               My Bookings
             </h1>
             <p className="text-gray-600">
-              View and manage your arena bookings
+              View all your arena bookings
             </p>
           </div>
 
@@ -111,12 +156,12 @@ export default function MyBookings() {
               <div className="text-6xl mb-4">📅</div>
               <h3 className="text-xl font-semibold text-gray-800 mb-2">No bookings yet</h3>
               <p className="text-gray-600 mb-4">Start your first booking now!</p>
-              <a 
+              <Link 
                 href="/book"
                 className="inline-block px-6 py-2 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-full hover:shadow-lg transition"
               >
                 Book an Arena
-              </a>
+              </Link>
             </div>
           ) : (
             <div className="space-y-4">
@@ -150,32 +195,21 @@ export default function MyBookings() {
                           <span className="text-gray-500">💰 Amount:</span>
                           <span className="ml-2 font-semibold text-green-600">{formatNaira(booking.totalAmount)}</span>
                         </div>
-                        <div>
-                          <span className="text-gray-500">📧 Reference:</span>
+                        <div className="col-span-2">
+                          <span className="text-gray-500">📋 Reference:</span>
                           <span className="ml-2 font-mono text-xs">{booking.paymentReference?.substring(0, 20)}...</span>
-                        </div>
-                        <div>
-                          <span className="text-gray-500">📅 Booked on:</span>
-                          <span className="ml-2 text-sm">{formatDate(booking.createdAt)}</span>
                         </div>
                       </div>
                     </div>
                     
                     <div className="flex gap-2">
-                      {booking.status === 'confirmed' && (
-                        <>
-                          <button className="px-4 py-2 text-red-600 border border-red-600 rounded-lg hover:bg-red-600 hover:text-white transition">
-                            Cancel
-                          </button>
-                          <button className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition">
-                            Reschedule
-                          </button>
-                        </>
-                      )}
                       {booking.status === 'completed' && (
-                        <button className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition">
+                        <Link
+                          href="/book"
+                          className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition"
+                        >
                           Book Again
-                        </button>
+                        </Link>
                       )}
                       <button className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition">
                         View Details

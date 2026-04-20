@@ -45,32 +45,29 @@ export default function Hero() {
       <div className="relative flex flex-col justify-center items-center min-h-screen text-white text-center px-4">
         <div className="animate-fade-in-up">
           <div className="inline-block px-4 py-2 rounded-full bg-white/10 backdrop-blur-sm mb-6">
-            <span className="text-sm">⚡ Limited Time Offer - 20% Off First Booking</span>
+            {/* <span className="text-sm">⚡ Limited Time Offer - 20% Off First Booking</span> */}
           </div>
           
           <h1 className="text-5xl md:text-7xl lg:text-8xl font-bold mb-6">
             Book Your
-            <span className="bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent"> Dream Arena</span>
+            <span className="bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent"> Session Now</span>
           </h1>
           
           <p className="text-xl md:text-2xl mb-8 max-w-3xl mx-auto opacity-90">
             Premium sports facility available 24/7. Book by the hour, play anytime, anywhere.
           </p>
 
-          {/* CTA Buttons */}
+          {/* CTA Buttons - Only Book Now */}
           <div className="flex flex-col sm:flex-row gap-4 justify-center mb-12">
             <a
               href="/book"
-              className="group px-8 py-3 bg-gradient-to-r from-blue-600 to-purple-600 rounded-full font-semibold hover:shadow-2xl transition transform hover:scale-105 inline-flex items-center justify-center space-x-2"
+              className="group px-10 py-4 bg-gradient-to-r from-blue-600 to-purple-600 rounded-full font-semibold text-lg hover:shadow-2xl transition transform hover:scale-105 inline-flex items-center justify-center space-x-2"
             >
               <span>Book Now</span>
               <svg className="w-5 h-5 group-hover:translate-x-1 transition" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
               </svg>
             </a>
-            <button className="px-8 py-3 border-2 border-white rounded-full font-semibold hover:bg-white hover:text-blue-600 transition">
-              View Pricing
-            </button>
           </div>
 
           {/* Stats */}
@@ -78,7 +75,7 @@ export default function Hero() {
             {[
               { value: '24/7', label: 'Hour Availability' },
               { value: '100+', label: 'Happy Customers' },
-              { value: '4.9★', label: 'Rating' }
+              { value: '₦13k', label: 'Per Hour' }
             ].map((stat, index) => (
               <div key={index} className="text-center animate-fade-in-up" style={{ animationDelay: `${index * 0.2}s` }}>
                 <div className="text-3xl md:text-4xl font-bold text-yellow-400">{stat.value}</div>

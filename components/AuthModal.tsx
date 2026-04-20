@@ -8,7 +8,7 @@ interface AuthModalProps {
 }
 
 export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
-  const [isLogin, setIsLogin] = useState(true);
+  const [isLogin, setIsLogin] = useState(true); // Start with login form
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
@@ -51,12 +51,13 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
           <h2 className="text-2xl font-bold">
             {isLogin ? 'Login' : 'Create Account'}
           </h2>
-          <button onClick={onClose} className="text-gray-500 hover:text-gray-700">
-            ✕
+          <button onClick={onClose} className="text-gray-500 hover:text-gray-700 text-2xl">
+            ×
           </button>
         </div>
         
         <form onSubmit={handleSubmit} className="space-y-4">
+          {/* Registration fields (only show for sign up) */}
           {!isLogin && (
             <>
               <input
@@ -78,6 +79,7 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
             </>
           )}
           
+          {/* Common fields for both */}
           <input
             type="email"
             placeholder="Email Address"
@@ -109,6 +111,7 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
           </button>
         </form>
         
+        {/* Toggle between Login and Register */}
         <div className="mt-4 text-center">
           <button
             onClick={() => {
@@ -117,7 +120,9 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
             }}
             className="text-blue-600 hover:text-blue-700 text-sm"
           >
-            {isLogin ? "Don't have an account? Sign up" : "Already have an account? Login"}
+            {isLogin 
+              ? "Don't have an account? Create one" 
+              : "Already have an account? Login"}
           </button>
         </div>
       </div>
