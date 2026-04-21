@@ -3,6 +3,7 @@ import { connectDB } from '@/lib/mongodb';
 import Booking from '@/models/Booking';
 import User from '@/models/User';
 import jwt from 'jsonwebtoken';
+import { sendBookingConfirmationToUser, sendAdminNotification } from '@/lib/email';
 
 export async function POST(request: NextRequest) {
   console.log('=== CREATE BOOKING API CALLED ===');
@@ -71,6 +72,21 @@ export async function POST(request: NextRequest) {
     });
     
     console.log('✅ Booking created successfully:', booking._id);
+    
+    // 📧 SEND EMAIL NOTIFICATIONS
+    console.log('📧 Sending email notifications...');
+    try {
+      // Send to user
+      await sendBookingConfirmationToUser(user.email, user.name, booking);
+      console.log('✅ User email sent to:', user.email);
+      
+      // Send to admin
+      await sendAdminNotification(booking);
+      console.log('✅ Admin email sent');
+    } catch (emailError) {
+      console.error('❌ Email sending error:', emailError);
+      // Don't fail the booking if email fails
+    }
     
     return NextResponse.json({
       success: true,
